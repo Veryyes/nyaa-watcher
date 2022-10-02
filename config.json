@@ -1,0 +1,9 @@
+[
+    {
+        "name:": "Kimetsu no Yaiba Yuukaku Hen",
+        "output_dir": "C:\\Users\\Brandon\\Downloads",
+        "query": "[SubsPlease] Kimetsu no Yaiba",
+        "pattern": "^\\[SubsPlease\\] Kimetsu no Yaiba - Yuukaku-hen - \\d+ \\(720p\\) \\[[0-9A-F]{8}\\].mkv$",
+        "category": "anime-eng"
+    }
+]

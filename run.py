@@ -201,7 +201,7 @@ def subscribe(config_file:str=Argument(..., help="JSON file containing the data 
     return check_for_latest()
 
 @app.command()
-def poll(config_file:str=Argument(..., help="JSON file containing the data to subscribe for")):
+def poll(config_file:str=Argument(..., help="JSON file containing the data to subscribe for"), dryrun:bool=Option(False)):
     if not os.path.exists(config_file):
         logger.warn(f"config file does not exist: {config_file}")
         return
@@ -209,15 +209,16 @@ def poll(config_file:str=Argument(..., help="JSON file containing the data to su
     with open(config_file, 'r') as f:
         config = json.load(f)
 
-    for entry in config:
-        res = check_for_latest(entry)
+    output_dir = config['output_dir']
+    watchers = config['watchers']
 
-def check_for_latest(config_entry:Dict):
-    # ['query'], entry['pattern'], entry['category']
+    for entry in watchers:
+        res = check_for_latest(entry, output_dir, dryrun)
+
+def check_for_latest(config_entry:Dict, output_dir, dryrun):
     query = config_entry['query']
     pattern = re.compile(config_entry['pattern'])
     category = Category(config_entry['category'])
-    output_dir = config_entry['output_dir']
     
     page = 0
     while True:
@@ -229,15 +230,23 @@ def check_for_latest(config_entry:Dict):
         for res in results:
             m = re.match(pattern, res.name)
             if m:
-                torrent_file = os.path.join(output_dir, res.name + ".torrent")
+                torrent_file = os.path.join(output_dir, "torrents", config_entry['name'], res.name + ".torrent")
+                target_dir = os.path.join(output_dir, "Media", "videos", "shows", config_entry['name'])
+                os.makedirs(target_dir)
                 if not os.path.exists(torrent_file):
                     url = urllib.parse.urljoin(base, res.link)
                     r = requests.get(url)
-                    with open(torrent_file, 'wb') as f:
-                        f.write(r.content)
-                    torrent = TorrentDownloader(torrent_file, ".")
-                    torrent.start_download()
-                    exit(0)
+                    logger.info(f"Saving: {torrent_file}")
+                    if not dryrun:
+                        with open(torrent_file, 'wb') as f:
+                            f.write(r.content)
+
+                    logger.info(f"Starting torrent!")
+                    if not dryrun:
+                        torrent = TorrentDownloader(torrent_file, target_dir)
+                        torrent.start_download()
+                else:
+                    logger.info(f"Torrent File {res.name}.torrent already downloaded. Assuming its been torrented too")
 
         page += 1
 
